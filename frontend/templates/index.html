@@ -373,6 +373,41 @@
       line-height: 1.45;
     }
 
+    .recording-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+      align-items: center;
+    }
+
+    .recording-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #d9e0e7;
+      background: #fff;
+      color: #44515b;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .recording-pill.live {
+      color: var(--bad);
+      border-color: rgba(181, 84, 46, 0.2);
+      background: rgba(181, 84, 46, 0.08);
+    }
+
+    .recording-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 4px rgba(181, 84, 46, 0.12);
+    }
+
     .file-meta {
       margin-top: 10px;
       color: #44515b;
@@ -596,6 +631,10 @@
               <span>or click to browse supported formats: wav, mp3, m4a, flac, ogg, aac, webm</span>
               <input id="file" name="file" type="file" accept=".wav,.mp3,.m4a,.flac,.ogg,.aac,.webm" required hidden />
             </div>
+            <div class="recording-controls">
+              <button type="button" class="secondary" id="recordBtn">Record from microphone</button>
+              <span id="recordingState" class="recording-pill">Mic idle</span>
+            </div>
             <div id="fileMeta" class="file-meta">No file selected.</div>
             <audio id="audioPreview" class="preview" controls></audio>
           </div>
@@ -694,7 +733,181 @@
     const fileInput = document.getElementById("file");
     const fileMeta = document.getElementById("fileMeta");
     const audioPreview = document.getElementById("audioPreview");
+    const recordBtn = document.getElementById("recordBtn");
+    const recordingState = document.getElementById("recordingState");
     let previewUrl = null;
+    let mediaStream = null;
+    let audioContext = null;
+    let sourceNode = null;
+    let processorNode = null;
+    let recordedBuffers = [];
+    let recordingTimer = null;
+    let recordingSeconds = 0;
+    let stoppingRecording = false;
+
+    function setRecordingState(text, live = false) {
+      recordingState.textContent = text;
+      recordingState.className = "recording-pill" + (live ? " live" : "");
+    }
+
+    function stopRecordingTimer() {
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        recordingTimer = null;
+      }
+      recordingSeconds = 0;
+    }
+
+    function formatRecordingTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+    }
+
+    function setFileInputFromBlob(blob) {
+      const file = new File([blob], "mic-recording.wav", { type: "audio/wav" });
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(file);
+      fileInput.files = dataTransfer.files;
+      updatePreview(file);
+    }
+
+    function mergeFloat32Buffers(buffers) {
+      const totalLength = buffers.reduce((total, buffer) => total + buffer.length, 0);
+      const merged = new Float32Array(totalLength);
+      let offset = 0;
+      buffers.forEach((buffer) => {
+        merged.set(buffer, offset);
+        offset += buffer.length;
+      });
+      return merged;
+    }
+
+    function float32ToWavBlob(float32Samples, sampleRate) {
+      const buffer = new ArrayBuffer(44 + float32Samples.length * 2);
+      const view = new DataView(buffer);
+
+      function writeString(offset, text) {
+        for (let i = 0; i < text.length; i += 1) {
+          view.setUint8(offset + i, text.charCodeAt(i));
+        }
+      }
+
+      function floatTo16BitPCM(output, offset, input) {
+        for (let i = 0; i < input.length; i += 1, offset += 2) {
+          const s = Math.max(-1, Math.min(1, input[i]));
+          output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+      }
+
+      writeString(0, "RIFF");
+      view.setUint32(4, 36 + float32Samples.length * 2, true);
+      writeString(8, "WAVE");
+      writeString(12, "fmt ");
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, "data");
+      view.setUint32(40, float32Samples.length * 2, true);
+      floatTo16BitPCM(view, 44, float32Samples);
+
+      return new Blob([view], { type: "audio/wav" });
+    }
+
+    async function stopRecording() {
+      if (recordingTimer) {
+        stopRecordingTimer();
+      }
+
+      recordBtn.disabled = true;
+      stoppingRecording = true;
+      try {
+        if (processorNode) {
+          processorNode.disconnect();
+          processorNode = null;
+        }
+        if (sourceNode) {
+          sourceNode.disconnect();
+          sourceNode = null;
+        }
+        if (audioContext && audioContext.state !== "closed") {
+          await audioContext.close();
+        }
+        if (recordedBuffers.length > 0) {
+          const merged = mergeFloat32Buffers(recordedBuffers);
+          const wavBlob = float32ToWavBlob(merged, audioContext ? audioContext.sampleRate : 48000);
+          setFileInputFromBlob(wavBlob);
+          setStatus("Recording ready", "ok");
+        } else {
+          setStatus("No audio captured", "err");
+        }
+        recordedBuffers = [];
+        if (mediaStream) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+        }
+      } finally {
+        mediaStream = null;
+        recordBtn.disabled = false;
+        audioContext = null;
+        stoppingRecording = false;
+        recordBtn.textContent = "Record from microphone";
+        setRecordingState("Mic idle");
+      }
+    }
+
+    async function startRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setStatus("This browser does not support microphone access", "err");
+        return;
+      }
+
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) {
+        setStatus("This browser does not support audio recording", "err");
+        return;
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recordedBuffers = [];
+        audioContext = new AudioContextCtor();
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+        sourceNode = audioContext.createMediaStreamSource(mediaStream);
+        processorNode = audioContext.createScriptProcessor(4096, 1, 1);
+
+        processorNode.onaudioprocess = (event) => {
+          if (stoppingRecording) return;
+          const channelData = event.inputBuffer.getChannelData(0);
+          recordedBuffers.push(new Float32Array(channelData));
+        };
+
+        sourceNode.connect(processorNode);
+        processorNode.connect(audioContext.destination);
+
+        setRecordingState("Recording 00:00", true);
+        recordBtn.textContent = "Stop recording";
+        setStatus("Recording from microphone...", "");
+        recordingTimer = setInterval(() => {
+          recordingSeconds += 1;
+          setRecordingState(`Recording ${formatRecordingTime(recordingSeconds)}`, true);
+        }, 1000);
+      } catch (error) {
+        mediaStream = null;
+        audioContext = null;
+        sourceNode = null;
+        processorNode = null;
+        recordedBuffers = [];
+        stopRecordingTimer();
+        setRecordingState("Mic idle");
+        setStatus(error.message || "Microphone permission denied", "err");
+      }
+    }
 
     function setStatus(text, mode) {
       statusBadge.textContent = text;
@@ -735,6 +948,15 @@
       translationResultEl.textContent = "No translation yet.";
     }
 
+    recordBtn.addEventListener("click", async () => {
+      if (audioContext && processorNode) {
+        await stopRecording();
+        return;
+      }
+
+      await startRecording();
+    });
+
     dropzone.addEventListener("click", () => fileInput.click());
     dropzone.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -764,6 +986,27 @@
     });
 
     resetBtn.addEventListener("click", () => {
+      stopRecordingTimer();
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+      }
+      if (processorNode) {
+        processorNode.disconnect();
+      }
+      if (sourceNode) {
+        sourceNode.disconnect();
+      }
+      if (audioContext && audioContext.state !== "closed") {
+        audioContext.close();
+      }
+      mediaStream = null;
+      audioContext = null;
+      sourceNode = null;
+      processorNode = null;
+      recordedBuffers = [];
+      stoppingRecording = false;
+      recordBtn.textContent = "Record from microphone";
+      setRecordingState("Mic idle");
       form.reset();
       updatePreview(null);
       clearResult();

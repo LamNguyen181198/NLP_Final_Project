@@ -12,6 +12,9 @@ frontend/.env
 # Model and runtime cache
 .hf-cache/
 
+# Large local training assets (datasets, manifests, checkpoints)
+training_data/
+
 # Python caches
 __pycache__/
 *.py[cod]

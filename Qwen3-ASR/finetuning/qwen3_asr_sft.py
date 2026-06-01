@@ -245,11 +245,14 @@ def main():
     if not args_cli.train_file:
         raise ValueError("TRAIN_FILE is required (json/jsonl). Needs fields: audio, text, optional prompt")
 
-    use_bf16 = torch.cuda.is_available() and torch.cuda.get_device_capability(0)[0] >= 8
+    has_cuda = torch.cuda.is_available()
+    use_bf16 = has_cuda and torch.cuda.get_device_capability(0)[0] >= 8
+    model_dtype = torch.bfloat16 if use_bf16 else (torch.float16 if has_cuda else torch.float32)
+    model_device_map = None if has_cuda else "cpu"
     asr_wrapper = Qwen3ASRModel.from_pretrained(
         args_cli.model_path,
-        dtype=torch.bfloat16 if use_bf16 else torch.float16,
-        device_map=None,
+        dtype=model_dtype,
+        device_map=model_device_map,
     )
     model = asr_wrapper.model
     processor = asr_wrapper.processor
@@ -295,7 +298,7 @@ def main():
         eval_steps=args_cli.save_steps,
         do_eval=bool(args_cli.eval_file),
         bf16=use_bf16,
-        fp16=not use_bf16,
+        fp16=(has_cuda and not use_bf16),
         ddp_find_unused_parameters=False,
         remove_unused_columns=False,
         report_to="none",

@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import threading
 import warnings
@@ -210,6 +211,30 @@ def _resolve_translation_source_language(asr_language: Optional[str], config: Tr
     from translate_model.nllb import resolve_source_language
 
     return resolve_source_language(asr_language)
+
+
+def _translate_text(translator, text: str, source_lang: Optional[str], target_lang: str) -> str:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return ""
+
+    segments = [segment.strip() for segment in re.split(r"(?<=[。！？!?])", cleaned) if segment.strip()]
+    if len(segments) <= 1:
+        return translator.translate(
+            cleaned,
+            source_lang=source_lang or None,
+            target_lang=target_lang,
+        )
+
+    translated_segments = [
+        translator.translate(
+            segment,
+            source_lang=source_lang or None,
+            target_lang=target_lang,
+        )
+        for segment in segments
+    ]
+    return "\n".join(segment.strip() for segment in translated_segments if segment.strip())
 
 
 def _is_allowed_file(filename: str) -> bool:
@@ -473,7 +498,8 @@ def transcribe_audio():
             translation_source_lang = _resolve_translation_source_language(result.language, translation_cfg) or ""
             translation_target_lang = translation_cfg.target_lang
             try:
-                raw_translated_text = translator.translate(
+                raw_translated_text = _translate_text(
+                    translator,
                     text_for_translation,
                     source_lang=translation_source_lang or None,
                     target_lang=translation_target_lang,

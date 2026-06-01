@@ -165,7 +165,7 @@ def main() -> None:
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         eval_steps=args.eval_steps,
-        evaluation_strategy="steps",
+        eval_strategy="steps",
         save_strategy="steps",
         save_total_limit=args.save_total_limit,
         report_to="none",
