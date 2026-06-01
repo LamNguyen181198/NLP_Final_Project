@@ -1,0 +1,49 @@
+# -----------------------------
+# Web API and documentation
+# -----------------------------
+flask>=3.0.0
+flask-cors>=4.0.0
+flasgger>=0.9.7.1
+python-dotenv>=1.0.1
+requests>=2.32.0
+
+# -----------------------------
+# Qwen3-ASR core
+# -----------------------------
+qwen-asr>=0.0.6
+torch>=2.1.0
+transformers>=4.57.0
+accelerate>=1.12.0
+sentencepiece>=0.2.0
+
+# -----------------------------
+# Audio processing utilities
+# -----------------------------
+librosa>=0.10.2
+soundfile>=0.12.1
+sox>=1.5.0
+numpy>=1.26.0
+scipy>=1.11.0
+
+# -----------------------------
+# Translation model groundwork
+# -----------------------------
+tokenizers>=0.19.0
+huggingface-hub>=0.24.0
+datasets>=2.20.0
+evaluate>=0.4.0
+langdetect>=1.0.9
+# Optional punctuation restoration model (only used when PUNCTUATION_STRATEGY=model)
+deepmultilingualpunctuation>=1.0.1
+
+# -----------------------------
+# Optional high-throughput serving
+# -----------------------------
+vllm==0.14.0; platform_system != "Windows"
+flash-attn>=2.7.0; platform_system != "Windows"
+
+# -----------------------------
+# Compatibility pins for your current env
+# -----------------------------
+typing-extensions~=4.13.2
+rich>=10.14.0,<14

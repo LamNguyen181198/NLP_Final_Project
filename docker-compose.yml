@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: mlp-final-lab-app
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./.hf-cache:/app/.hf-cache
+    restart: unless-stopped

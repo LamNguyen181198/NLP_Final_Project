@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Qwen3-ASR Studio</title>
+  <style>
+    :root {
+      --bg: #f5f2ec;
+      --panel: #ffffff;
+      --panel-soft: #fbfaf7;
+      --ink: #1a1d1f;
+      --muted: #6e747a;
+      --line: #e5ded3;
+      --brand: #38b88f;
+      --brand-2: #1f9c74;
+      --brand-dark: #155c47;
+      --accent: #283046;
+      --accent-2: #f0f4fb;
+      --good: #177a5a;
+      --bad: #b5542e;
+      --shadow: 0 18px 40px rgba(25, 31, 36, 0.12);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      font-family: "Segoe UI", "Inter", "Avenir Next", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(56, 184, 143, 0.12), transparent 28%),
+        radial-gradient(circle at 90% 12%, rgba(40, 48, 70, 0.08), transparent 22%),
+        linear-gradient(180deg, #faf8f4 0%, #f1ede6 100%);
+      padding: 22px;
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      gap: 18px;
+    }
+
+    .topbar {
+      height: 76px;
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(229, 222, 211, 0.9);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 10px 20px rgba(56, 184, 143, 0.25);
+    }
+
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-weight: 500;
+      letter-spacing: 0;
+      margin-top: 2px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .nav a {
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.92rem;
+      padding: 9px 12px;
+      border-radius: 999px;
+      transition: background 120ms ease, color 120ms ease;
+    }
+
+    .nav a.active,
+    .nav a:hover {
+      color: var(--ink);
+      background: #f2f4f8;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #ffffff 0%, #fcfbf8 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .hero-title {
+      max-width: 720px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--brand-dark);
+      background: rgba(56, 184, 143, 0.12);
+      border: 1px solid rgba(56, 184, 143, 0.2);
+      padding: 7px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3.2vw, 3.2rem);
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+    }
+
+    .hero p {
+      margin: 12px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 68ch;
+      font-size: 1rem;
+    }
+
+    .hero-pillbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #334047;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .pill.brand {
+      background: rgba(56, 184, 143, 0.12);
+      border-color: rgba(56, 184, 143, 0.18);
+      color: var(--brand-dark);
+    }
+
+    .hero-card {
+      width: min(100%, 360px);
+      background: linear-gradient(145deg, #2b3250, #1b2035);
+      color: #f6f8ff;
+      border-radius: 20px;
+      padding: 16px;
+      box-shadow: 0 18px 28px rgba(18, 24, 42, 0.24);
+      display: grid;
+      gap: 14px;
+    }
+
+    .hero-card h2 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+
+    .hero-card p {
+      margin: 0;
+      color: rgba(246, 248, 255, 0.76);
+      line-height: 1.5;
+      font-size: 0.92rem;
+    }
+
+    .wave {
+      display: grid;
+      grid-template-columns: repeat(28, 1fr);
+      gap: 3px;
+      align-items: end;
+      height: 74px;
+      padding: 8px 0 4px;
+    }
+
+    .wave span {
+      display: block;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #9df3ca, #31c58a);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.18fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .hero-card { width: 100%; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 18px 18px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .card-head h3 {
+      margin: 0;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+
+    .card-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .status {
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: var(--accent-2);
+      color: #334157;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border: 1px solid #dce4f2;
+    }
+
+    .status.ok {
+      color: var(--good);
+      background: rgba(23, 122, 90, 0.09);
+      border-color: rgba(23, 122, 90, 0.15);
+    }
+
+    .status.err {
+      color: var(--bad);
+      background: rgba(181, 84, 46, 0.09);
+      border-color: rgba(181, 84, 46, 0.15);
+    }
+
+    form {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #273138;
+    }
+
+    input[type="text"],
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel-soft);
+      padding: 12px 14px;
+      color: var(--ink);
+      font: inherit;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      outline: none;
+      border-color: rgba(56, 184, 143, 0.7);
+      box-shadow: 0 0 0 4px rgba(56, 184, 143, 0.14);
+      background: #ffffff;
+    }
+
+    textarea {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .upload {
+      background: linear-gradient(180deg, #ffffff 0%, #faf8f5 100%);
+      border: 1px solid #d9d1c5;
+      border-radius: 20px;
+      padding: 14px;
+    }
+
+    .dropzone {
+      border: 1.8px dashed #c8d4cf;
+      border-radius: 18px;
+      background:
+        linear-gradient(180deg, rgba(56, 184, 143, 0.05), rgba(56, 184, 143, 0.02));
+      padding: 18px;
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+      color: #2e3842;
+    }
+
+    .dropzone:hover,
+    .dropzone.drag {
+      border-color: rgba(56, 184, 143, 0.85);
+      background: rgba(56, 184, 143, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .dropzone strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .dropzone span {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .file-meta {
+      margin-top: 10px;
+      color: #44515b;
+      font-size: 0.92rem;
+    }
+
+    .preview {
+      width: 100%;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+    }
+
+    .primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 14px 24px rgba(31, 156, 116, 0.22);
+    }
+
+    .secondary {
+      color: #26313c;
+      background: #f1f4f8;
+      border: 1px solid #d9e0e7;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .result {
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .result-panel {
+      background: linear-gradient(180deg, #ffffff 0%, #fbfaf7 100%);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      min-height: 540px;
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      gap: 12px;
+    }
+
+    .text-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      min-height: 320px;
+    }
+
+    @media (max-width: 760px) {
+      .text-grid { grid-template-columns: 1fr; }
+    }
+
+    .result-meta {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 16px;
+      background: #f7f8fb;
+      border: 1px solid #e3e8f1;
+    }
+
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #2b3440;
+      font-size: 0.95rem;
+    }
+
+    .kv span:first-child {
+      color: var(--muted);
+    }
+
+    .transcript {
+      border: 1px solid #e0e6e1;
+      border-radius: 18px;
+      background: #fcfdfb;
+      padding: 14px;
+      min-height: 300px;
+      color: #182129;
+      line-height: 1.75;
+      font-size: 0.98rem;
+      white-space: pre-wrap;
+      overflow: auto;
+    }
+
+    .helper {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .top-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .link {
+      text-decoration: none;
+      color: #234035;
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .link:hover { background: #f4f6f9; }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div>
+          Qwen3-ASR Studio
+          <small>Audio transcription workspace</small>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Primary">
+        <a class="active" href="/">Record</a>
+        <a href="/apidocs" target="_blank" rel="noreferrer">Swagger</a>
+        <a href="/health" target="_blank" rel="noreferrer">Health</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="hero-header">
+        <div class="hero-title">
+          <div class="eyebrow">Speech to text</div>
+          <h1>Upload audio and get a clean transcript in seconds.</h1>
+          <p>
+            This front end sends an audio file to the Flask API, transcribes it with Qwen3-ASR,
+            and shows the result in a clean review panel. The layout is inspired by the reference
+            you shared, but tuned for clearer contrast and a lighter, calmer visual language.
+          </p>
+          <div class="hero-pillbar">
+            <span class="pill brand">Drag and drop upload</span>
+            <span class="pill">Audio preview</span>
+            <span class="pill">Swagger docs</span>
+            <span class="pill">Future translation ready</span>
+          </div>
+        </div>
+
+        <aside class="hero-card">
+          <div>
+            <h2>Transcribing and captioning the audio</h2>
+            <p>Drop a file, choose language if needed, and review the transcript below.</p>
+          </div>
+          <div class="wave" aria-hidden="true">
+            <span style="height: 36%"></span>
+            <span style="height: 64%"></span>
+            <span style="height: 52%"></span>
+            <span style="height: 80%"></span>
+            <span style="height: 34%"></span>
+            <span style="height: 72%"></span>
+            <span style="height: 48%"></span>
+            <span style="height: 86%"></span>
+            <span style="height: 42%"></span>
+            <span style="height: 58%"></span>
+            <span style="height: 34%"></span>
+            <span style="height: 68%"></span>
+            <span style="height: 46%"></span>
+            <span style="height: 82%"></span>
+            <span style="height: 40%"></span>
+            <span style="height: 58%"></span>
+            <span style="height: 32%"></span>
+            <span style="height: 78%"></span>
+            <span style="height: 50%"></span>
+            <span style="height: 66%"></span>
+            <span style="height: 36%"></span>
+            <span style="height: 74%"></span>
+            <span style="height: 42%"></span>
+            <span style="height: 84%"></span>
+            <span style="height: 52%"></span>
+            <span style="height: 38%"></span>
+            <span style="height: 68%"></span>
+            <span style="height: 46%"></span>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="layout">
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <h3>Input</h3>
+            <p>Choose a file, set optional hints, then transcribe.</p>
+          </div>
+          <div id="statusBadge" class="status">Ready</div>
+        </div>
+
+        <form id="asrForm">
+          <div class="upload">
+            <label for="file">Audio file</label>
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload audio file">
+              <strong>Drop your audio here</strong>
+              <span>or click to browse supported formats: wav, mp3, m4a, flac, ogg, aac, webm</span>
+              <input id="file" name="file" type="file" accept=".wav,.mp3,.m4a,.flac,.ogg,.aac,.webm" required hidden />
+            </div>
+            <div id="fileMeta" class="file-meta">No file selected.</div>
+            <audio id="audioPreview" class="preview" controls></audio>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label for="language">Forced language</label>
+              <select id="language" name="language">
+                <option value="">Auto-detect</option>
+                <option>Vietnamese</option>
+                <option>English</option>
+                <option>Chinese</option>
+                <option>Cantonese</option>
+                <option>Japanese</option>
+                <option>Korean</option>
+              </select>
+            </div>
+            <div>
+              <label for="dtype">dtype override</label>
+              <select id="dtype" name="dtype">
+                <option value="">Use env default</option>
+                <option value="float32">float32</option>
+                <option value="float16">float16</option>
+                <option value="bfloat16">bfloat16</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="context">Context</label>
+            <textarea id="context" name="context" placeholder="Domain hints, names, abbreviations..."></textarea>
+          </div>
+
+          <div class="button-row">
+            <button type="submit" class="primary" id="submitBtn">Transcribe audio</button>
+            <button type="button" class="secondary" id="resetBtn">Reset</button>
+            <a class="link" href="/apidocs" target="_blank" rel="noreferrer">Open Swagger</a>
+          </div>
+          <div class="helper">First transcription can take longer while the model loads. Later requests should be much faster.</div>
+        </form>
+      </section>
+
+      <section class="card result">
+        <div class="card-head" style="padding-bottom: 0;">
+          <div>
+            <h3>Transcript and translation</h3>
+            <p>Review the ASR result and the multilingual translation here.</p>
+          </div>
+        </div>
+
+        <div class="result-panel">
+          <div class="result-meta">
+            <div class="kv"><span>ASR language</span><strong id="resultLanguage">-</strong></div>
+            <div class="kv"><span>ASR model</span><strong id="resultModel">-</strong></div>
+            <div class="kv"><span>Translation pair</span><strong id="translationPair">-</strong></div>
+            <div class="kv"><span>Translation model</span><strong id="translationModel">-</strong></div>
+          </div>
+
+          <div class="text-grid">
+            <div>
+              <div class="helper" style="margin-bottom: 8px; color: var(--brand-dark); font-weight: 700;">Transcript</div>
+              <div id="result" class="transcript">No transcription yet.</div>
+            </div>
+
+            <div>
+              <div class="helper" style="margin-bottom: 8px; color: var(--brand-dark); font-weight: 700;">English translation</div>
+              <div id="translationResult" class="transcript">No translation yet.</div>
+            </div>
+          </div>
+
+          <div class="top-links">
+            <button type="button" class="secondary" id="copyBtn">Copy transcript</button>
+            <button type="button" class="secondary" id="copyTranslationBtn">Copy translation</button>
+            <span class="helper">The result panel is intentionally high-contrast for readability.</span>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("asrForm");
+    const statusBadge = document.getElementById("statusBadge");
+    const resultEl = document.getElementById("result");
+    const translationResultEl = document.getElementById("translationResult");
+    const resultLanguageEl = document.getElementById("resultLanguage");
+    const resultModelEl = document.getElementById("resultModel");
+    const translationPairEl = document.getElementById("translationPair");
+    const translationModelEl = document.getElementById("translationModel");
+    const submitBtn = document.getElementById("submitBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const copyBtn = document.getElementById("copyBtn");
+    const copyTranslationBtn = document.getElementById("copyTranslationBtn");
+
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("file");
+    const fileMeta = document.getElementById("fileMeta");
+    const audioPreview = document.getElementById("audioPreview");
+    let previewUrl = null;
+
+    function setStatus(text, mode) {
+      statusBadge.textContent = text;
+      statusBadge.className = "status" + (mode ? " " + mode : "");
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+    }
+
+    function updatePreview(file) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+        previewUrl = null;
+      }
+
+      if (!file) {
+        fileMeta.textContent = "No file selected.";
+        audioPreview.style.display = "none";
+        audioPreview.removeAttribute("src");
+        return;
+      }
+
+      fileMeta.textContent = `${file.name} • ${formatSize(file.size)}`;
+      previewUrl = URL.createObjectURL(file);
+      audioPreview.src = previewUrl;
+      audioPreview.style.display = "block";
+    }
+
+    function clearResult() {
+      resultLanguageEl.textContent = "-";
+      resultModelEl.textContent = "-";
+      translationPairEl.textContent = "-";
+      translationModelEl.textContent = "-";
+      resultEl.textContent = "No transcription yet.";
+      translationResultEl.textContent = "No translation yet.";
+    }
+
+    dropzone.addEventListener("click", () => fileInput.click());
+    dropzone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    dropzone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      dropzone.classList.add("drag");
+    });
+
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("drag"));
+
+    dropzone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      dropzone.classList.remove("drag");
+      const files = event.dataTransfer.files;
+      if (!files || !files.length) return;
+      fileInput.files = files;
+      updatePreview(files[0]);
+    });
+
+    fileInput.addEventListener("change", () => {
+      updatePreview(fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
+    });
+
+    resetBtn.addEventListener("click", () => {
+      form.reset();
+      updatePreview(null);
+      clearResult();
+      setStatus("Ready");
+    });
+
+    copyBtn.addEventListener("click", async () => {
+      const text = resultEl.textContent.trim();
+      if (!text || text === "No transcription yet.") {
+        setStatus("Nothing to copy", "err");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("Transcript copied", "ok");
+      } catch (error) {
+        setStatus("Clipboard copy failed", "err");
+      }
+    });
+
+    copyTranslationBtn.addEventListener("click", async () => {
+      const text = translationResultEl.textContent.trim();
+      if (!text || text === "No translation yet.") {
+        setStatus("Nothing to copy", "err");
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus("Translation copied", "ok");
+      } catch (error) {
+        setStatus("Clipboard copy failed", "err");
+      }
+    });
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      if (!fileInput.files || !fileInput.files.length) {
+        setStatus("Please choose an audio file first", "err");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      setStatus("Transcribing...", "");
+      resultEl.textContent = "Waiting for server response...";
+
+      try {
+        const payload = new FormData(form);
+        const response = await fetch("/api/v1/transcribe", {
+          method: "POST",
+          body: payload,
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Request failed.");
+        }
+
+        resultLanguageEl.textContent = data.language || "Unknown";
+        resultModelEl.textContent = data.asr_model_name || "N/A";
+        const translationSource = data.translation_source_lang || data.language || "auto";
+        const translationTarget = data.translation_target_lang || "eng_Latn";
+        translationPairEl.textContent = `${translationSource} -> ${translationTarget}`;
+        translationModelEl.textContent = data.translation_model || "N/A";
+        resultEl.textContent = data.text || "(empty transcript)";
+        translationResultEl.textContent = data.translation_error
+          ? `Translation unavailable: ${data.translation_error}`
+          : (data.translated_text || "(empty translation)");
+        setStatus("Transcription complete", "ok");
+      } catch (error) {
+        resultLanguageEl.textContent = "-";
+        resultModelEl.textContent = "-";
+        translationPairEl.textContent = "-";
+        translationModelEl.textContent = "-";
+        resultEl.textContent = "No transcription available.";
+        translationResultEl.textContent = "No translation available.";
+        setStatus(error.message, "err");
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
