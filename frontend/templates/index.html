@@ -653,6 +653,22 @@
               </select>
             </div>
             <div>
+              <label for="target_lang">Target language</label>
+              <select id="target_lang" name="target_lang">
+                <option value="eng_Latn" selected>English</option>
+                <option value="vie_Latn">Vietnamese</option>
+                <option value="zho_Hans">Chinese Simplified</option>
+                <option value="jpn_Jpan">Japanese</option>
+                <option value="kor_Hang">Korean</option>
+                <option value="fra_Latn">French</option>
+                <option value="deu_Latn">German</option>
+                <option value="spa_Latn">Spanish</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
               <label for="dtype">dtype override</label>
               <select id="dtype" name="dtype">
                 <option value="">Use env default</option>
@@ -700,7 +716,7 @@
             </div>
 
             <div>
-              <div class="helper" style="margin-bottom: 8px; color: var(--brand-dark); font-weight: 700;">English translation</div>
+              <div class="helper" style="margin-bottom: 8px; color: var(--brand-dark); font-weight: 700;">Translation</div>
               <div id="translationResult" class="transcript">No translation yet.</div>
             </div>
           </div>
