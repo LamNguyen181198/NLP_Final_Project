@@ -415,6 +415,13 @@ def warmup_models():
                 "required": False,
                 "description": "Optional context prompt",
             },
+            {
+                "name": "target_lang",
+                "in": "formData",
+                "type": "string",
+                "required": False,
+                "description": "Optional NLLB target language code. Example: eng_Latn, vie_Latn, jpn_Jpan",
+            },
         ],
         "responses": {
             "200": {
@@ -451,6 +458,20 @@ def transcribe_audio():
 
     context = (request.form.get("context") or "").strip()
     language = (request.form.get("language") or "").strip() or None
+    requested_target_lang = (request.form.get("target_lang") or "").strip()
+
+    if requested_target_lang:
+        from translate_model.nllb import NLLB_LANGUAGE_CODES, normalize_language_code
+
+        requested_target_lang = normalize_language_code(requested_target_lang) or ""
+        if requested_target_lang not in set(NLLB_LANGUAGE_CODES.values()):
+            return jsonify(
+                {
+                    "error": "Unsupported target language",
+                    "target_lang": requested_target_lang,
+                    "supported_target_langs": sorted(NLLB_LANGUAGE_CODES.values()),
+                }
+            ), 400
 
     env_cfg = _get_env_config()
     cfg = ASRConfig(
@@ -496,7 +517,7 @@ def transcribe_audio():
         if result.text.strip():
             translator = translation_service.get_translator(translation_cfg)
             translation_source_lang = _resolve_translation_source_language(result.language, translation_cfg) or ""
-            translation_target_lang = translation_cfg.target_lang
+            translation_target_lang = requested_target_lang or translation_cfg.target_lang
             try:
                 raw_translated_text = _translate_text(
                     translator,
