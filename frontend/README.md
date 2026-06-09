@@ -13,7 +13,19 @@ This service exposes a Flask API that accepts an audio file, transcribes it with
 
 ## Quick start
 
-1. Create and activate your Python environment.
+1. Create and activate your Python environment. On Windows, the project uses the workspace venv at `.env/`.
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\.env\Scripts\Activate.ps1
+```
+
+If you do not want to activate it in the shell, you can run the venv Python directly:
+
+```powershell
+.\.env\Scripts\python.exe app.py
+```
+
 2. Install dependencies from workspace root:
 
 ```bash

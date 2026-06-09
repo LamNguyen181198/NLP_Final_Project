@@ -12,6 +12,25 @@ This workspace is split into a few self-contained parts:
 
 If you only want to run the app, begin with [frontend/README.md](frontend/README.md). That file contains the runtime steps, model preload instructions, and API examples.
 
+On Windows, the workspace already includes a virtual environment in [.env](.env). To run the project from PowerShell:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\.env\Scripts\Activate.ps1
+```
+
+Or run Python directly from the venv without activating it first:
+
+```powershell
+.\.env\Scripts\python.exe .\frontend\app.py
+```
+
+If you want to install dependencies and preload models in one shot, use:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install_and_preload.ps1
+```
+
 If you want to train or regenerate data, use [TRAINING_QUICKSTART.md](TRAINING_QUICKSTART.md) together with [scripts/README.md](scripts/README.md) and [training_data/README.md](training_data/README.md).
 
 ## Project Layout
